@@ -54,6 +54,46 @@ app.post('/api/auth/github/token', async (req, res) => {
   }
 });
 
+// GitHub OAuth callback endpoint
+app.get('/github-callback', async (req, res) => {
+  try {
+    const { code } = req.query;
+    
+    if (!code) {
+      return res.redirect('https://prompy-henna.vercel.app/integrations?error=missing_code');
+    }
+
+    console.log(`Processing GitHub callback with code: ${code.substring(0, 5)}...`);
+
+    // Exchange the code for a token
+    const response = await axios.post('https://github.com/login/oauth/access_token', {
+      client_id: process.env.GITHUB_CLIENT_ID,
+      client_secret: process.env.GITHUB_CLIENT_SECRET,
+      code,
+    }, {
+      headers: {
+        Accept: 'application/json',
+      },
+    });
+
+    if (response.data.access_token) {
+      // Store the token in a secure cookie or encrypt it
+      // For simplicity, we'll pass it as a URL parameter (not ideal for production)
+      const token = response.data.access_token;
+      console.log('GitHub token obtained successfully');
+      
+      // Redirect back to the app with the token
+      return res.redirect(`https://prompy-henna.vercel.app/auth-success?token=${token}`);
+    } else {
+      console.error('No access token received from GitHub');
+      return res.redirect('https://prompy-henna.vercel.app/integrations?error=no_token');
+    }
+  } catch (error) {
+    console.error('Error in GitHub callback:', error?.response?.data || error.message);
+    return res.redirect('https://prompy-henna.vercel.app/integrations?error=server_error');
+  }
+});
+
 app.listen(PORT, () => {
   console.log(`GitHub Auth Server running on port ${PORT}`);
 });
