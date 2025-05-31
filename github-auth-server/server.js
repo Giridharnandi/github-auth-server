@@ -83,7 +83,7 @@ app.get('/github-callback', async (req, res) => {
       console.log('GitHub token obtained successfully');
       
       // Redirect back to the app with the token
-      return res.redirect(`https://prompy-henna.vercel.app/auth-success?token=${token}`);
+      return res.redirect(`https://prompy-henna.vercel.app/auth/success?token=${token}`);
     } else {
       console.error('No access token received from GitHub');
       return res.redirect('https://prompy-henna.vercel.app/integrations?error=no_token');
