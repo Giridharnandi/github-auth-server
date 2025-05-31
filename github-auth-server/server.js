@@ -9,7 +9,7 @@ const PORT = process.env.PORT || 3000;
 // Configure CORS to allow requests from your app's domains
 app.use(cors({
   origin: [
-    'https://prompy-henna.vercel.app',
+    'https://prompyai.netlify.app',
     'http://localhost:8080'
   ],
   credentials: true,
@@ -60,7 +60,7 @@ app.get('/github-callback', async (req, res) => {
     const { code } = req.query;
     
     if (!code) {
-      return res.redirect('https://prompy-henna.vercel.app/integrations?error=missing_code');
+      return res.redirect('https://prompyai.netlify.app/integrations?error=missing_code');
     }
 
     console.log(`Processing GitHub callback with code: ${code.substring(0, 5)}...`);
@@ -83,14 +83,14 @@ app.get('/github-callback', async (req, res) => {
       console.log('GitHub token obtained successfully');
       
       // Redirect back to the app with the token
-      return res.redirect(`https://prompy-henna.vercel.app/auth/success?token=${token}`);
+      return res.redirect(`https://prompyai.netlify.app/auth/success?token=${token}`);
     } else {
       console.error('No access token received from GitHub');
-      return res.redirect('https://prompy-henna.vercel.app/integrations?error=no_token');
+      return res.redirect('https://prompyai.netlify.app/integrations?error=no_token');
     }
   } catch (error) {
     console.error('Error in GitHub callback:', error?.response?.data || error.message);
-    return res.redirect('https://prompy-henna.vercel.app/integrations?error=server_error');
+    return res.redirect('https://prompyai.netlify.app/integrations?error=server_error');
   }
 });
 
