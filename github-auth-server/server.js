@@ -9,8 +9,9 @@ const PORT = process.env.PORT || 3000;
 // Configure CORS to allow requests from your app's domains
 app.use(cors({
   origin: [
-    'https://prompyai.netlify.app',
-    'http://localhost:8080'
+    'https://prompyai.dev',
+    'http://localhost:8080',
+    'https://github-auth-server-88yw.onrender.com'
   ],
   credentials: true,
 }));
@@ -57,13 +58,26 @@ app.post('/api/auth/github/token', async (req, res) => {
 // GitHub OAuth callback endpoint
 app.get('/github-callback', async (req, res) => {
   try {
-    const { code } = req.query;
+    const { code, error: oauthError } = req.query;
+    
+    console.log('GitHub callback received:', { code: code ? `${code.substring(0, 5)}...` : 'none', error: oauthError });
+    
+    if (oauthError) {
+      console.error('OAuth error from GitHub:', oauthError);
+      return res.redirect(`https://prompyai.dev/integrations?error=oauth_${oauthError}`);
+    }
     
     if (!code) {
-      return res.redirect('https://prompyai.netlify.app/integrations?error=missing_code');
+      console.error('No code parameter received');
+      return res.redirect('https://prompyai.dev/integrations?error=missing_code');
     }
 
     console.log(`Processing GitHub callback with code: ${code.substring(0, 5)}...`);
+    console.log('Environment check:', {
+      hasClientId: !!process.env.GITHUB_CLIENT_ID,
+      hasClientSecret: !!process.env.GITHUB_CLIENT_SECRET,
+      clientIdLength: process.env.GITHUB_CLIENT_ID?.length || 0
+    });
 
     // Exchange the code for a token
     const response = await axios.post('https://github.com/login/oauth/access_token', {
@@ -76,21 +90,31 @@ app.get('/github-callback', async (req, res) => {
       },
     });
 
+    console.log('GitHub API response status:', response.status);
+    console.log('GitHub API response data:', response.data);
+
     if (response.data.access_token) {
-      // Store the token in a secure cookie or encrypt it
-      // For simplicity, we'll pass it as a URL parameter (not ideal for production)
       const token = response.data.access_token;
-      console.log('GitHub token obtained successfully');
+      console.log('GitHub token obtained successfully, length:', token.length);
       
       // Redirect back to the app with the token
-      return res.redirect(`https://prompyai.netlify.app/auth/success?token=${token}`);
+      return res.redirect(`https://prompyai.dev/auth/success?token=${token}`);
     } else {
-      console.error('No access token received from GitHub');
-      return res.redirect('https://prompyai.netlify.app/integrations?error=no_token');
+      console.error('No access token in GitHub response:', response.data);
+      return res.redirect('https://prompyai.dev/integrations?error=no_token');
     }
   } catch (error) {
-    console.error('Error in GitHub callback:', error?.response?.data || error.message);
-    return res.redirect('https://prompyai.netlify.app/integrations?error=server_error');
+    console.error('Error in GitHub callback:', {
+      message: error.message,
+      status: error?.response?.status,
+      data: error?.response?.data,
+      config: error?.config ? {
+        url: error.config.url,
+        method: error.config.method,
+        data: error.config.data
+      } : null
+    });
+    return res.redirect('https://prompyai.dev/integrations?error=server_error');
   }
 });
 
